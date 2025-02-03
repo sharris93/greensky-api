@@ -9,6 +9,8 @@ import errorHandler from './middleware/errorHandler.js'
 
 // Controllers/Routers
 import userController from './controllers/userController.js'
+import feedPostController from './controllers/feedPostController.js'
+import validateToken from './middleware/validateToken.js'
 
 const app = express()
 const port = process.env.PORT || 3000 // Use PORT env variable if it exists, default to 3000
@@ -21,6 +23,7 @@ app.use(logger) // This is a logger, logging out key information on incoming req
 
 // Controllers / Routes
 app.use('/', userController)
+app.use('/', validateToken, feedPostController)
 
 // Error Handling
 app.use(errorHandler)
