@@ -1,4 +1,4 @@
-export default tokenIsValid = async (req, res, next) => {
+export default validateToken = async (req, res, next) => {
   try {
     // 1. Check that an authorization header is present on the request
     // 2. If the header is not present, we'll send a 401
