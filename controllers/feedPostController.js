@@ -35,7 +35,7 @@ router.get('/feedposts/:postId', async (req, res, next) => {
     const { postId } = req.params
 
     // 1. Search for the post based on the postId in the params
-    const post = await Feedpost.findById(postId)
+    const post = await Feedpost.findById(postId).populate('author').populate('replies.author')
 
     // 2. Send a 404 if not found
     if(!post) return res.status(404).json({ message: 'Post not found' })
@@ -110,22 +110,73 @@ router.put('/feedposts/:postId/likes', validateToken, async (req, res, next) => 
     const alreadyLiked = post.likes.includes(req.user._id)
 
     // 4. If user has liked the post, remove the ObjectId from the likes array
-    if (alreadyLiked) {
-      const updatedPost = await Feedpost.findByIdAndUpdate(postId, {
-        $pull: { likes: req.user._id }
-      }, { returnDocument: 'after' })
-      
-      return res.json(updatedPost)
+    // Else, add the ObjectId to the likes array
+    const updatedPost = await Feedpost.findByIdAndUpdate(postId, {
+      [alreadyLiked ? '$pull' : '$addToSet']: { likes: req.user._id }
+    }, { returnDocument: 'after' })
+    
+    return res.json(updatedPost)
 
-    // 5. If the user has not liked the post, add the user's ObjectId to the likes array
-    } else {
-      const updatedPost = await Feedpost.findByIdAndUpdate(postId, {
-        $addToSet: { likes: req.user._id }
-      }, { returnDocument: 'after' })
-      
-      return res.json(updatedPost)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// * Create reply route
+router.post('/feedposts/:postId/replies', validateToken, async (req, res, next) => {
+  try {
+    const { postId } = req.params
+    
+    // 1. Search for the post based on the postId in the params
+    const post = await Feedpost.findById(postId)
+
+    // 2. Send a 404 if not found
+    if(!post) return res.status(404).json({ message: 'Post not found' })
+
+    // 3. Update the req.body to include the author field
+    req.body.author = req.user._id
+
+    // 4. If post found, add reply object (req.body) to the post.replies array
+    post.replies.push(req.body)
+
+    // 5. We save the post to persist the change we just made to the database
+    await post.save()
+
+    // 6. Send back the updated post
+    return res.status(201).json(post)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// * Delete reply route
+router.delete('/feedposts/:postId/replies/:replyId', validateToken, async (req, res, next) => {
+  try {
+    const { postId, replyId } = req.params
+    
+    // 1. Search for the post based on the postId in the params
+    const post = await Feedpost.findById(postId)
+
+    // 2. Send a 404 if not found
+    if(!post) return res.status(404).json({ message: 'Post not found' })
+    
+    // 3. Find the post that is to be deleted using the id subdocument method https://mongoosejs.com/docs/subdocs.html#finding-a-subdocument
+    const reply = post.replies.id(replyId)
+    
+    // 4. Check the logged in user (req.user) is either the reply author or the post author
+    // If the logged in user is not the reply author, and they are not the post author, they're not permitted access
+    if(!req.user._id.equals(reply.author) && !req.user._id.equals(post.author)){
+      return res.status(403).json({ message: 'You do not have permssion to access this resource' })
     }
 
+    // 5. Remove the post from the array
+    reply.deleteOne()
+
+    // 6. Save the post to persist the change to the database
+    await post.save()
+
+    // 7. Return the updated post to the client
+    return res.sendStatus(204)
   } catch (error) {
     next(error)
   }
