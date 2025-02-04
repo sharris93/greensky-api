@@ -23,7 +23,7 @@ app.use(logger) // This is a logger, logging out key information on incoming req
 
 // Controllers / Routes
 app.use('/', userController)
-app.use('/', validateToken, feedPostController)
+app.use('/', feedPostController)
 
 // Error Handling
 app.use(errorHandler)
