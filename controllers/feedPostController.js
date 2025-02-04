@@ -71,7 +71,6 @@ router.put('/feedposts/:postId', validateToken, async (req, res, next) => {
   }
 })
 
-
 // * Delete route
 router.delete('/feedposts/:postId', validateToken, async (req, res, next) => {
   try {
@@ -91,6 +90,42 @@ router.delete('/feedposts/:postId', validateToken, async (req, res, next) => {
 
     // 5. Return a 204 with no body
     return res.sendStatus(204)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// * Likes route
+router.put('/feedposts/:postId/likes', validateToken, async (req, res, next) => {
+  try {
+    const { postId } = req.params
+    
+    // 1. Search for the post based on the postId in the params
+    const post = await Feedpost.findById(postId)
+
+    // 2. Send a 404 if not found
+    if(!post) return res.status(404).json({ message: 'Post not found' })
+
+    // 3. Identify whether user has already liked the post
+    const alreadyLiked = post.likes.includes(req.user._id)
+
+    // 4. If user has liked the post, remove the ObjectId from the likes array
+    if (alreadyLiked) {
+      const updatedPost = await Feedpost.findByIdAndUpdate(postId, {
+        $pull: { likes: req.user._id }
+      }, { returnDocument: 'after' })
+      
+      return res.json(updatedPost)
+
+    // 5. If the user has not liked the post, add the user's ObjectId to the likes array
+    } else {
+      const updatedPost = await Feedpost.findByIdAndUpdate(postId, {
+        $addToSet: { likes: req.user._id }
+      }, { returnDocument: 'after' })
+      
+      return res.json(updatedPost)
+    }
+
   } catch (error) {
     next(error)
   }
