@@ -1,6 +1,5 @@
 import express from 'express'
 import User from '../models/user.js'
-import jwt from 'jsonwebtoken'
 import { generateToken } from '../utils/tokens.js'
 
 // Router
@@ -24,7 +23,7 @@ router.post('/signup', async (req, res, next) => {
   }
 })
 
-router.post('/login', async (req, res, next) => {
+router.post('/signin', async (req, res, next) => {
   try {
     // Search the user collection for a document with a matching username OR email
     const foundUser = await User.findOne({ $or: [{ username: req.body.identifier }, { email: req.body.identifier }] })

@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
       }
     ]
   },
+  displayName: {
+    type: String,
+    required: true
+  },
   bio: {
     type: String
   },
